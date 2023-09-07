@@ -14,6 +14,9 @@ const uint32_t height = size;
 
 const uint32_t threadCount = 16;
 
+float uScale = 1, vScale = 1;
+float uOffset = 0, vOffset = 0;
+
 void GenerateUV(cv::Mat& image)
 {
     uint i = 0, x = 0, y = 0;
@@ -71,6 +74,9 @@ void MandelbrotSet(cv::Mat* image, FractalFunction func, uint32_t maxIterations,
 
         u = x / (float)width;
         v = y / (float)height;
+
+        u = u * uScale + uOffset;
+        v = v * vScale + vOffset;
 
         if (func != nullptr)
         {
@@ -184,6 +190,56 @@ int main()
         {
             GenerateMandlebrotSet(&image, mandelbrotHue);
             cvtColor(image, image, cv::COLOR_HSV2BGR);
+        }
+
+        if (key == (int)'z')
+        {
+            uScale = 1;
+            vScale = 1;
+            uOffset = 0;
+            vOffset = 0;
+        }
+        else if (key == (int)'x')
+        {
+            uScale = 1 / 4.0f;
+            vScale = 1 / 4.0f;
+            uOffset = 0.055f;
+            vOffset = 0.522f;
+        }
+        else if (key == (int)'c')
+        {
+            uScale = 1 / 16.0f;
+            vScale = 1 / 16.0f;
+            uOffset = 0.055f;
+            vOffset = 0.522f;
+        }
+        else if (key == (int)'v')
+        {
+            uScale = 1 / 64.0f;
+            vScale = 1 / 64.0f;
+            uOffset = 0.055f;
+            vOffset = 0.522f;
+        }
+        else if (key == (int)'b')
+        {
+            uScale = 1 / 256.0f;
+            vScale = 1 / 256.0f;
+            uOffset = 0.055f;
+            vOffset = 0.522f;
+        }
+        else if (key == (int)'n')
+        {
+            uScale = 1 / 1024.0f;
+            vScale = 1 / 1024.0f;
+            uOffset = 0.055f;
+            vOffset = 0.522f;
+        }
+        else if (key == (int)'m')
+        {
+            uScale = 1 / 4096.0f;
+            vScale = 1 / 4096.0f;
+            uOffset = 0.055f;
+            vOffset = 0.522f;
         }
     }
 }
