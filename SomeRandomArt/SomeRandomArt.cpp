@@ -12,7 +12,7 @@ const uint32_t size = 1024;
 const uint32_t width = size;
 const uint32_t height = size;
 
-const uint32_t threadCount = 16;
+const uint32_t threadCount = 8;
 
 float uScale = 1, vScale = 1;
 float uOffset = 0, vOffset = 0;
@@ -39,6 +39,15 @@ void GenerateUV(cv::Mat& image)
         // Blue
         image.at<cv::Vec3b>(y, x)[0] = 0;
     }
+
+    cv::putText(image, "(1) UV + Help", cv::Point(0, 32), cv::FONT_HERSHEY_COMPLEX, 1.0, cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
+    cv::putText(image, "(2) Mandelbrot Black & White", cv::Point(0, 64), cv::FONT_HERSHEY_COMPLEX, 1.0, cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
+    cv::putText(image, "(3) Mandelbrot Colored", cv::Point(0, 96), cv::FONT_HERSHEY_COMPLEX, 1.0, cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
+    cv::putText(image, "(4) Mandelbrot Hue", cv::Point(0, 128), cv::FONT_HERSHEY_COMPLEX, 1.0, cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
+
+    cv::putText(image, "(zxcvbnm) Zoom Mandelbrot Set", cv::Point(0, 192), cv::FONT_HERSHEY_COMPLEX, 1.0f, cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
+    cv::putText(image, "(,.) Mandelbrot Set Iterations", cv::Point(0, 224), cv::FONT_HERSHEY_COMPLEX, 1.0f, cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
+    cv::putText(image, "(s) Save Image to CWD", cv::Point(0, 256), cv::FONT_HERSHEY_COMPLEX, 1.0f, cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
 }
 
 
@@ -106,7 +115,7 @@ void GenerateMandlebrotSet(cv::Mat* image, FractalFunction func, const uint32_t 
         uint32_t offset = batchSize * t;
         std::thread thread([=]()
             {
-                printf("Mandelbrot thread %i dispatched\r\n", t);
+                // printf("Mandelbrot thread %i dispatched\r\n", t);
                 MandelbrotSet(image, func, maxIterations, offset, batchSize);
             }
         );
@@ -160,15 +169,19 @@ void mouse_click(int event, int x, int y, int flags, void* param)
         break;
     case cv::EVENT_LBUTTONUP:
     {
-        float newWidth = (x - pt1.x) / (float)width;
-        float newHeight = (y - pt1.y) / (float)height;
+        if (x != pt1.x && y != pt1.y)
+        {
 
-        uOffset += pt1.x / (float)width * uScale;
-        vOffset += pt1.y / (float)height * vScale;
+            float newWidth = (x - pt1.x) / (float)width;
+            float newHeight = (y - pt1.y) / (float)height;
 
-        uScale *= newWidth;
-        // vScale *= newHeight;
-        vScale *= newWidth;
+            uOffset += pt1.x / (float)width * uScale;
+            vOffset += pt1.y / (float)height * vScale;
+
+            uScale *= newWidth;
+            // vScale *= newHeight;
+            vScale *= newWidth;
+        }
     }
     break;
 
