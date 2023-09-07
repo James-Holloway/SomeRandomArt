@@ -8,12 +8,13 @@
 #include <iostream>
 #include <vector>
 #include <stack>
+#include <thread>
 
 const uint32_t size = 1024;
 const uint32_t width = size;
 const uint32_t height = size;
 
-const uint32_t threadCount = 8;
+uint32_t threadCount = 8;
 
 const cv::Size windowSize = cv::Size(768, 768);
 
@@ -318,6 +319,8 @@ int main()
     CurrentScreen screen = CurrentScreen::GenerateUV;
 
     UVSOStack.push(UVScaleOffset());
+
+    threadCount = std::max<uint32_t>(1u, std::thread::hardware_concurrency());
 
     for (;;)
     {
