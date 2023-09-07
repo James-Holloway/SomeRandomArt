@@ -296,7 +296,7 @@ int main()
         cv::imshow("Image", image);
 
         // int key = cv::waitKey(1000 / 60);
-        int key = cv::waitKey(1);
+        int key = cv::waitKeyEx(1);
 
         if (key == 27) // ESC
         {
@@ -342,6 +342,32 @@ int main()
 
             printf("Zoom is now 1x\r\n");
             regenerateImage = true;
+        }
+
+        if (UVSOStack.size() > 1)
+        {
+            double moveAmount = 0.125;
+
+            if (key == 0x10000 * 0x25) // VK_LEFT
+            {
+                UVSOStack.top().uOffset -= moveAmount * UVSOStack.top().uScale;
+                regenerateImage = true;
+            }
+            else if (key == 0x10000 * 0x26) // VK_UP
+            {
+                UVSOStack.top().vOffset -= moveAmount * UVSOStack.top().vScale;
+                regenerateImage = true;
+            }
+            else if (key == 0x10000 * 0x27) // VK_RIGHT
+            {
+                UVSOStack.top().uOffset += moveAmount * UVSOStack.top().uScale;
+                regenerateImage = true;
+            }
+            else if (key == 0x10000 * 0x28) // VK_DOWN
+            {
+                UVSOStack.top().vOffset += moveAmount * UVSOStack.top().vScale;
+                regenerateImage = true;
+            }
         }
 
         if (key == (int)',')
