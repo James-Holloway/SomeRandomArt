@@ -274,6 +274,34 @@ void mouse_click(int event, int x, int y, int flags, void* param)
 
         regenerateImage = true;
         break;
+
+    case cv::EVENT_MOUSEWHEEL:
+        int wheelDelta = cv::getMouseWheelDelta(flags);
+
+        if (wheelDelta > 0) // up
+        {
+            UVScaleOffset newUV;
+
+            newUV.uOffset = UVSOStack.top().uOffset + ((x / (double)windowSize.width / 2) * UVSOStack.top().uScale);
+            newUV.vOffset = UVSOStack.top().vOffset + ((y / (double)windowSize.height / 2) * UVSOStack.top().vScale);
+
+            newUV.uScale = UVSOStack.top().uScale / 2;
+            newUV.vScale = UVSOStack.top().vScale / 2;
+
+            UVSOStack.push(newUV);
+
+            printf("Zoom is now %ix\r\n", (int)(1.0 / newUV.uScale));
+            regenerateImage = true;
+        }
+        else if (wheelDelta < 0) // down
+        {
+            if (UVSOStack.size() > 1)
+            {
+                UVSOStack.pop();
+
+                regenerateImage = true;
+            }
+        }
     }
 }
 
