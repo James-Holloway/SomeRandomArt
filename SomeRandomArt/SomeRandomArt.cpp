@@ -17,6 +17,8 @@ const uint32_t threadCount = 16;
 float uScale = 1, vScale = 1;
 float uOffset = 0, vOffset = 0;
 
+uint32_t mandelbrotIterations = 32;
+
 void GenerateUV(cv::Mat& image)
 {
     uint i = 0, x = 0, y = 0;
@@ -146,13 +148,46 @@ FractalFunction mandelbrotHue = [](uint32_t x, uint32_t y, uint32_t i, uint32_t 
         image->at<cv::Vec3b>(y, x) = cv::Vec3b(value * 0.705f, 255, 255);
     };
 
+cv::Point pt1;
+//Callback for mousclick event, the x-y coordinate of mouse button-up and button-down are stored in two points pt1, pt2.
+void mouse_click(int event, int x, int y, int flags, void* param)
+{
+    switch (event)
+    {
+    case cv::EVENT_LBUTTONDOWN:
+        pt1.x = x;
+        pt1.y = y;
+        break;
+    case cv::EVENT_LBUTTONUP:
+    {
+        float newWidth = (x - pt1.x) / (float)width;
+        float newHeight = (y - pt1.y) / (float)height;
+
+        uOffset += pt1.x / (float)width * uScale;
+        vOffset += pt1.y / (float)height * vScale;
+
+        uScale *= newWidth;
+        // vScale *= newHeight;
+        vScale *= newWidth;
+    }
+    break;
+
+    case cv::EVENT_RBUTTONUP:
+        uScale = 1;
+        vScale = 1;
+        uOffset = 0;
+        vOffset = 0;
+        break;
+    }
+}
+
 int main()
 {
     cv::Mat image(cv::Size(size, size), CV_8UC3, cv::Scalar(0, 0, 0));
 
     cv::namedWindow("Image", cv::WINDOW_NORMAL);
-
     cv::resizeWindow("Image", cv::Size(768, 768));
+    cv::setMouseCallback("Image", mouse_click, 0);
 
     GenerateUV(image);
 
@@ -180,15 +215,15 @@ int main()
         }
         if (key == (int)'2')
         {
-            GenerateMandlebrotSet(&image, mandelbrotBW);
+            GenerateMandlebrotSet(&image, mandelbrotBW, mandelbrotIterations);
         }
         if (key == (int)'3')
         {
-            GenerateMandlebrotSet(&image, mandelbrotColoured);
+            GenerateMandlebrotSet(&image, mandelbrotColoured, mandelbrotIterations);
         }
         if (key == (int)'4')
         {
-            GenerateMandlebrotSet(&image, mandelbrotHue);
+            GenerateMandlebrotSet(&image, mandelbrotHue, mandelbrotIterations);
             cvtColor(image, image, cv::COLOR_HSV2BGR);
         }
 
@@ -240,6 +275,25 @@ int main()
             vScale = 1 / 4096.0f;
             uOffset = 0.055f;
             vOffset = 0.522f;
+        }
+
+        if (key == (int)',')
+        {
+            mandelbrotIterations /= 2;
+            if (mandelbrotIterations <= 0)
+            {
+                mandelbrotIterations = 1;
+            }
+            printf("Mandelbrot Iterations is now %i\r\n", mandelbrotIterations);
+        }
+        if (key == (int)'.')
+        {
+            mandelbrotIterations *= 2;
+            if (mandelbrotIterations >= 256)
+            {
+                mandelbrotIterations = 256;
+            }
+            printf("Mandelbrot Iterations is now %i\r\n", mandelbrotIterations);
         }
     }
 }
