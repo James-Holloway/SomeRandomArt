@@ -352,7 +352,7 @@ cv::Point pt1;
 void mouse_click(int event, int x, int y, int flags, void* param)
 {
     // Don't handle mouse if we are not in a mandelbrot screen
-    if (screen != CurrentScreen::MandelbrotBW && screen != CurrentScreen::MandelbrotColored && screen != CurrentScreen::MandelbrotHue)
+    if (screen != CurrentScreen::MandelbrotBW && screen != CurrentScreen::MandelbrotColored && screen != CurrentScreen::MandelbrotHue && screen != CurrentScreen::CubicFractalBW)
         return;
 
     switch (event)
@@ -378,7 +378,7 @@ void mouse_click(int event, int x, int y, int flags, void* param)
 
             UVSOStack.push(newUV);
 
-            printf("Zoom is now %ix\r\n", (int)(1.0 / newUV.uScale));
+            printf("Zoom is now %llix\r\n", (long long)(1.0 / newUV.uScale));
             regenerateImage = true;
         }
     }
@@ -388,7 +388,7 @@ void mouse_click(int event, int x, int y, int flags, void* param)
         if (UVSOStack.size() > 1)
             UVSOStack.pop();
 
-        printf("Zoom is now %ix\r\n", (int)(1.0 / UVSOStack.top().uScale));
+        printf("Zoom is now %llix\r\n", (long long)(1.0 / UVSOStack.top().uScale));
 
         regenerateImage = true;
         break;
@@ -408,7 +408,7 @@ void mouse_click(int event, int x, int y, int flags, void* param)
 
             UVSOStack.push(newUV);
 
-            printf("Zoom is now %ix\r\n", (int)(1.0 / newUV.uScale));
+            printf("Zoom is now %llix\r\n", (long long)(1.0 / newUV.uScale));
             regenerateImage = true;
         }
         else if (wheelDelta < 0) // down
@@ -441,7 +441,6 @@ int main()
     {
         cv::imshow("Image", image);
 
-        // int key = cv::waitKey(1000 / 60);
         int key = cv::waitKeyEx(1);
 
         if (key == 27) // ESC
@@ -486,7 +485,7 @@ int main()
             regenerateImage = true;
         }
 
-        if (screen == CurrentScreen::MandelbrotBW || screen == CurrentScreen::MandelbrotColored || screen == CurrentScreen::MandelbrotHue)
+        if (screen == CurrentScreen::MandelbrotBW || screen == CurrentScreen::MandelbrotColored || screen == CurrentScreen::MandelbrotHue || screen == CurrentScreen::CubicFractalBW)
         {
             if (key == (int)'z')
             {
@@ -589,6 +588,7 @@ int main()
             case CurrentScreen::Functions:
                 printf("Generating Functional art over %i threads\r\n", threadCount);
                 GenerateBatchedSet(&image, nullptr, FunctionsSet, functionFunction);
+                break;
             }
             regenerateImage = false;
         }
