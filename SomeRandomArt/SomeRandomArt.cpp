@@ -26,9 +26,6 @@ struct UVScaleOffset
 
 std::stack<UVScaleOffset> UVSOStack;
 
-uint32_t mandelbrotIterations = 32;
-bool regenerateImage = false;
-
 enum class CurrentScreen
 {
     GenerateUV,
@@ -36,7 +33,13 @@ enum class CurrentScreen
     MandelbrotColored,
     MandelbrotHue,
     CubicFractalBW,
+    Functions,
 };
+
+CurrentScreen screen = CurrentScreen::GenerateUV;
+uint32_t mandelbrotIterations = 32;
+uint32_t functionFunction = 0;
+bool regenerateImage = false;
 
 void GenerateUV(cv::Mat& image)
 {
@@ -65,6 +68,7 @@ void GenerateUV(cv::Mat& image)
     cv::putText(image, "(3) Mandelbrot Colored", cv::Point(0, textY += 32), cv::FONT_HERSHEY_COMPLEX, 1.0, cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
     cv::putText(image, "(4) Mandelbrot Hue", cv::Point(0, textY += 32), cv::FONT_HERSHEY_COMPLEX, 1.0, cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
     cv::putText(image, "(5) Cubic Fractal Black & White", cv::Point(0, textY += 32), cv::FONT_HERSHEY_COMPLEX, 1.0, cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
+    cv::putText(image, "(6) Functions (Use arrow keys to navigate)", cv::Point(0, textY += 32), cv::FONT_HERSHEY_COMPLEX, 1.0, cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
 
     textY += 32;
     cv::putText(image, "(z) Reset Zoom", cv::Point(0, textY += 32), cv::FONT_HERSHEY_COMPLEX, 1.0f, cv::Scalar(255, 255, 255), 2, cv::LINE_AA);
@@ -206,13 +210,122 @@ void CubicFractalSet(cv::Mat* image, FractalFunction func, uint32_t maxIteration
 
 #pragma endregion
 
+#pragma region Functions
+
+// Functions Based on https://flam3.com/flame_draves.pdf
+void FunctionsSet(cv::Mat* image, FractalFunction func, uint32_t functionType, uint32_t offset, uint32_t batchSize)
+{
+    for (uint i = offset; i < offset + batchSize; i++)
+    {
+        uint32_t x = 0, y = 0;
+        double u = 0, v = 0;
+        x = i % width;
+        y = floor(i / height);
+
+        u = x / (double)width;
+        v = y / (double)height;
+
+        // u = u * UVSOStack.top().uScale + UVSOStack.top().uOffset;
+        // v = v * UVSOStack.top().vScale + UVSOStack.top().vOffset;
+
+        uchar blue = 0, green = 0, red = 0;
+
+        // Map UV from [0,1] to [-1,1] space
+        u = (u - 0.5) * 2;
+        v = (v - 0.5) * 2;
+
+        switch (functionType)
+        {
+        case 0:
+        default:
+        {
+            double r = sqrt(u * u + v * v);
+
+            // Sinusoidal
+            double u0 = sin(u);
+            double v0 = sin(v);
+
+            // Swirl
+            double u1 = (u * sin(r * r)) - (v * cos(r * r));
+            double v1 = (u * cos(r * r)) + (v * sin(r * r));
+
+            // Spherical
+            double u2 = (1 / (r * r)) * u;
+            double v2 = (1 / (r * r)) * v;
+
+
+            double uTotal = (u0 + u1 + u2);
+            double vTotal = (v0 + v1 + v2);
+
+            red = uTotal * 255;
+            green = vTotal * 255;
+            blue = (red + green) / 2;
+        }
+        break;
+        case 1:
+        {
+            double r = sqrt(u * u + v * v);
+
+            // Linear
+            double u0 = u;
+            double v0 = v;
+
+            // Swirl
+            double u1 = (u * sin(r * r)) - (v * cos(r * r));
+            double v1 = (u * cos(r * r)) + (v * sin(r * r));
+
+            // Spherical
+            double u2 = (1 / (r * r)) * u;
+            double v2 = (1 / (r * r)) * v;
+
+
+            double uTotal = (u0 + u1 + u2);
+            double vTotal = (v0 + v1 + v2);
+
+            red = ((uTotal + vTotal) / 2.0) * 255;
+            green = red;
+            blue = red;
+        }
+        break;
+        case 2:
+        {
+            double c = 4.9 / 5.23;
+            double f = 7.1 / 16.2;
+
+            double u0 = u + c * sin(tan(3 * v));
+            double v0 = v + f * sin(tan(3 * u));
+
+            c = 8 / 25.0;
+            f = 3.0 / 50.0;
+
+            double u1 = u + c * sin(tan(3 * v));
+            double v1 = v + f * sin(tan(3 * u));
+
+            c = 91 / 100.0;
+            f = 4 / 6.6;
+
+            double u2 = u + c * sin(tan(3 * v));
+            double v2 = v + f * sin(tan(3 * u));
+
+            double uTotal = (u0 + u1 + u2);
+            double vTotal = (v0 + v1 + v2);
+
+            red = sin(uTotal) * 255;
+            green = cos(vTotal) * 255;
+            blue = (sin(u0 / v0) + cos(u1 / v1) + tan(v2 / u2)) * 255;
+        }
+        break;
+        }
+
+        image->at<cv::Vec3b>(y, x) = cv::Vec3b(blue, green, red);
+    }
+}
+
+
+#pragma endregion
+
 void GenerateBatchedSet(cv::Mat* image, FractalFunction func, FractalSet setFunc, const uint32_t maxIterations = 32)
 {
-    if (func == nullptr)
-    {
-        throw std::invalid_argument("No func provided");
-    }
-
     uint32_t batchSize = (width * height) / threadCount;
 
     std::vector<std::thread> threads{};
@@ -238,6 +351,10 @@ cv::Point pt1;
 //Callback for mousclick event, the x-y coordinate of mouse button-up and button-down are stored in two points pt1, pt2.
 void mouse_click(int event, int x, int y, int flags, void* param)
 {
+    // Don't handle mouse if we are not in a mandelbrot screen
+    if (screen != CurrentScreen::MandelbrotBW && screen != CurrentScreen::MandelbrotColored && screen != CurrentScreen::MandelbrotHue)
+        return;
+
     switch (event)
     {
     case cv::EVENT_LBUTTONDOWN:
@@ -316,8 +433,6 @@ int main()
 
     GenerateUV(image);
 
-    CurrentScreen screen = CurrentScreen::GenerateUV;
-
     UVSOStack.push(UVScaleOffset());
 
     threadCount = std::max<uint32_t>(1u, std::thread::hardware_concurrency());
@@ -365,61 +480,86 @@ int main()
             screen = CurrentScreen::CubicFractalBW;
             regenerateImage = true;
         }
-
-        if (key == (int)'z')
+        if (key == (int)'6')
         {
-            while (UVSOStack.size() > 1)
-                UVSOStack.pop();
-
-            printf("Zoom is now 1x\r\n");
+            screen = CurrentScreen::Functions;
             regenerateImage = true;
         }
 
-        if (UVSOStack.size() > 1)
+        if (screen == CurrentScreen::MandelbrotBW || screen == CurrentScreen::MandelbrotColored || screen == CurrentScreen::MandelbrotHue)
         {
-            double moveAmount = 0.125;
-
-            if (key == 0x10000 * 0x25) // VK_LEFT
+            if (key == (int)'z')
             {
-                UVSOStack.top().uOffset -= moveAmount * UVSOStack.top().uScale;
+                while (UVSOStack.size() > 1)
+                    UVSOStack.pop();
+
+                printf("Zoom is now 1x\r\n");
                 regenerateImage = true;
             }
-            else if (key == 0x10000 * 0x26) // VK_UP
+
+            if (UVSOStack.size() > 1)
             {
-                UVSOStack.top().vOffset -= moveAmount * UVSOStack.top().vScale;
+                double moveAmount = 0.125;
+
+                if (key == 0x10000 * 0x25) // VK_LEFT
+                {
+                    UVSOStack.top().uOffset -= moveAmount * UVSOStack.top().uScale;
+                    regenerateImage = true;
+                }
+                else if (key == 0x10000 * 0x26) // VK_UP
+                {
+                    UVSOStack.top().vOffset -= moveAmount * UVSOStack.top().vScale;
+                    regenerateImage = true;
+                }
+                else if (key == 0x10000 * 0x27) // VK_RIGHT
+                {
+                    UVSOStack.top().uOffset += moveAmount * UVSOStack.top().uScale;
+                    regenerateImage = true;
+                }
+                else if (key == 0x10000 * 0x28) // VK_DOWN
+                {
+                    UVSOStack.top().vOffset += moveAmount * UVSOStack.top().vScale;
+                    regenerateImage = true;
+                }
+            }
+
+            if (key == (int)',')
+            {
+                mandelbrotIterations /= 2;
+                if (mandelbrotIterations <= 0)
+                {
+                    mandelbrotIterations = 1;
+                }
+                printf("Mandelbrot Iterations is now %i\r\n", mandelbrotIterations);
+                regenerateImage = true;
+            }
+            if (key == (int)'.')
+            {
+                mandelbrotIterations *= 2;
+                if (mandelbrotIterations >= 1024)
+                {
+                    mandelbrotIterations = 1024;
+                }
+                printf("Mandelbrot Iterations is now %i\r\n", mandelbrotIterations);
+                regenerateImage = true;
+            }
+        }
+        else if (screen == CurrentScreen::Functions)
+        {
+            if (key == 0x10000 * 0x25) // VK_LEFT
+            {
+                if (functionFunction > 0)
+                    functionFunction--;
+                printf("Function Function is now %i\r\n", functionFunction);
                 regenerateImage = true;
             }
             else if (key == 0x10000 * 0x27) // VK_RIGHT
             {
-                UVSOStack.top().uOffset += moveAmount * UVSOStack.top().uScale;
+                if (functionFunction < 2) // max functions
+                    functionFunction++;
+                printf("Function Function is now %i\r\n", functionFunction);
                 regenerateImage = true;
             }
-            else if (key == 0x10000 * 0x28) // VK_DOWN
-            {
-                UVSOStack.top().vOffset += moveAmount * UVSOStack.top().vScale;
-                regenerateImage = true;
-            }
-        }
-
-        if (key == (int)',')
-        {
-            mandelbrotIterations /= 2;
-            if (mandelbrotIterations <= 0)
-            {
-                mandelbrotIterations = 1;
-            }
-            printf("Mandelbrot Iterations is now %i\r\n", mandelbrotIterations);
-            regenerateImage = true;
-        }
-        if (key == (int)'.')
-        {
-            mandelbrotIterations *= 2;
-            if (mandelbrotIterations >= 1024)
-            {
-                mandelbrotIterations = 1024;
-            }
-            printf("Mandelbrot Iterations is now %i\r\n", mandelbrotIterations);
-            regenerateImage = true;
         }
 
         if (regenerateImage)
@@ -446,6 +586,9 @@ int main()
                 printf("Generating Mandelbrot Set BW with %i max iterations over %i threads\r\n", mandelbrotIterations, threadCount);
                 GenerateBatchedSet(&image, mandelbrotBW, CubicFractalSet, mandelbrotIterations);
                 break;
+            case CurrentScreen::Functions:
+                printf("Generating Functional art over %i threads\r\n", threadCount);
+                GenerateBatchedSet(&image, nullptr, FunctionsSet, functionFunction);
             }
             regenerateImage = false;
         }

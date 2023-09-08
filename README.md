@@ -12,5 +12,6 @@ There are currently five different screens:
 3. Mandelbrot Colored
 4. Mandelbrot Hue
 5. Cubic Fractal Black & White
+6. Functions
 
-I used `vcpkg install opencv` to install OpenCV 4.8.0, which is used to generate all the images along with usage of `std::complex<float>`. This makes use of 8 threads to concurrently generate different parts of the set at once (naively split evenly).
+I used `vcpkg install opencv` to install OpenCV 4.8.0, which is used to generate all the images along with usage of `std::complex<double>`. This makes use of 8 threads to concurrently generate different parts of the set at once (naively split evenly).
